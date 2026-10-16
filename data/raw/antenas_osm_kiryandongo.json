@@ -1,0 +1,61 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-10-16T21:02:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 3340510321,
+  "lat": 2.0176658,
+  "lon": 32.1428412,
+  "tags": {
+    "man_made": "tower"
+  }
+},
+{
+  "type": "node",
+  "id": 3340510514,
+  "lat": 2.0173334,
+  "lon": 32.1424335,
+  "tags": {
+    "man_made": "tower"
+  }
+},
+{
+  "type": "node",
+  "id": 3710888829,
+  "lat": 1.5705681,
+  "lon": 31.9498784,
+  "tags": {
+    "man_made": "mast",
+    "tower:type": "communication"
+  }
+},
+{
+  "type": "node",
+  "id": 11778828702,
+  "lat": 1.5573820,
+  "lon": 32.3563801,
+  "tags": {
+    "man_made": "mast",
+    "tower:construction": "lattice",
+    "tower:type": "communication"
+  }
+},
+{
+  "type": "node",
+  "id": 14252597777,
+  "lat": 2.4490699,
+  "lon": 32.3784313,
+  "tags": {
+    "man_made": "tower",
+    "tower:type": "communication"
+  }
+}
+
+  ]
+}
