@@ -29,12 +29,13 @@ export function PairingPanel({ room, controllerToken, snapshot, status }: Pairin
   const url = controllerToken ? controlUrl(room, controllerToken) : null;
   const [qr, setQr] = useState<{ url: string; data: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!url) return;
     let cancelled = false;
-    QRCode.toDataURL(url, { margin: 1, width: 240, errorCorrectionLevel: 'M', color: { dark: '#3A2C26', light: '#FFF9ED' } })
+    QRCode.toDataURL(url, { margin: 1, width: 280, errorCorrectionLevel: 'M', color: { dark: '#3A2C26', light: '#FFF9ED' } })
       .then((data) => {
         if (!cancelled) setQr({ url, data });
       })
@@ -67,40 +68,44 @@ export function PairingPanel({ room, controllerToken, snapshot, status }: Pairin
     }
   };
 
+  if (collapsed) {
+    return (
+      <button type="button" className="gd-pairing-chip" onClick={() => setCollapsed(false)} aria-label="Mostrar el QR para emparejar el teléfono">
+        <span className={`gd-pairing-chip__dot${phoneConnected ? ' ok' : ''}`} aria-hidden="true" />
+        📱 Sala {room} · {phoneConnected ? 'teléfono conectado' : 'mostrar QR'} ▸
+      </button>
+    );
+  }
+
   return (
-    <section className="gd-pairing" aria-label="Emparejar teléfono de control">
-      <div className="gd-pairing__head">
-        <span className="gd-pairing__label">Sala</span>
-        <span className="gd-pairing__room">{room}</span>
-      </div>
-
+    <section className="gd-pairing gd-pairing--compact" aria-label="Emparejar teléfono de control" data-url={url ?? undefined}>
+      <button type="button" className="gd-pairing__min" onClick={() => setCollapsed(true)} aria-label="Minimizar">
+        –
+      </button>
       {url && (
-        <>
-          <div className="gd-pairing__qr">
-            {qr && qr.url === url ? (
-              <img src={qr.data} width={240} height={240} alt={`Código QR para controlar la sala ${room} desde el teléfono`} />
-            ) : (
-              <div className="gd-pairing__qr-placeholder">Generando QR…</div>
-            )}
-          </div>
-          <div className="gd-pairing__link">
-            <input type="text" readOnly value={url} aria-label="Enlace de control" onFocus={(e) => e.currentTarget.select()} />
-            <button type="button" onClick={() => void copy()}>
-              {copied ? 'Copiado ✓' : 'Copiar'}
-            </button>
-          </div>
-          <p className="gd-pairing__note">Escanéalo solo desde el teléfono del presentador (incluye la clave de control).</p>
-        </>
+        <div className="gd-pairing__qr">
+          {qr && qr.url === url ? (
+            <img src={qr.data} width={132} height={132} alt={`Código QR para controlar la sala ${room} desde el teléfono`} />
+          ) : (
+            <div className="gd-pairing__qr-placeholder">Generando QR…</div>
+          )}
+        </div>
       )}
-
-      <p className={`gd-pairing__phone${phoneConnected ? ' gd-pairing__phone--ok' : ''}`} role="status" aria-live="polite">
-        {phoneConnected ? 'Teléfono conectado ✓' : 'Esperando al teléfono…'}
-      </p>
-      <p className={`gd-pairing__server gd-pairing__server--${status}`}>{STATUS_TEXT[status]}</p>
-
-      {isLocal && (
-        <p className="gd-pairing__warn">Para usar el teléfono abre la app desde la URL pública (túnel HTTPS).</p>
-      )}
+      <div className="gd-pairing__info">
+        <span className="gd-pairing__label">Controlar desde el teléfono</span>
+        <span className="gd-pairing__room">{room}</span>
+        <p className={`gd-pairing__phone${phoneConnected ? ' gd-pairing__phone--ok' : ''}`} role="status" aria-live="polite">
+          {phoneConnected ? 'Teléfono conectado ✓' : 'Esperando al teléfono…'}
+        </p>
+        {url && (
+          <button type="button" className="gd-pairing__copy" onClick={() => void copy()}>
+            {copied ? 'Enlace copiado ✓' : 'Copiar enlace'}
+          </button>
+        )}
+        <small className={`gd-pairing__server gd-pairing__server--${status}`}>{STATUS_TEXT[status]}</small>
+        {url && <small className="gd-pairing__note">Solo para el teléfono del presentador: incluye la clave de control.</small>}
+        {isLocal && <small className="gd-pairing__warn">En localhost el teléfono no llega: usa la URL pública (túnel).</small>}
+      </div>
     </section>
   );
 }

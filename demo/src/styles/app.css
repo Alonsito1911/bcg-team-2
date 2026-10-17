@@ -368,3 +368,36 @@ h1, h2, h3, h4 { margin: 0; }
 .team-ong-frame { flex: 1; border: 0; width: 100%; }
 .gd-pres-ong .team-ong { z-index: 1001; }
 .gd-pres-ong .team-ong-bar { padding-right: 260px; }
+/* Etiqueta única del pozo: letra + estado en una sola pastilla. */
+.well-label { display: inline-flex; align-items: stretch; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; font-size: clamp(10px, 1.05cqw, 16px); font-weight: 700; white-space: nowrap; background: var(--ivory); box-shadow: 0 2px 0 rgba(58,44,38,.25); }
+.well-label b { background: var(--ink); color: var(--ivory); padding: .05em .55em; }
+.well-label > span { padding: .05em .65em; }
+.well-label.ok > span { background: #cdeed8; }
+.well-label.warn > span { background: #f8e2a8; }
+.well-label.bad > span { background: #f7c4bf; }
+.well-label.unk > span { background: #e4e1dc; }
+/* Detalle del pozo: resumen arriba, acciones agrupadas, avanzado plegado. */
+.drawer { gap: 10px; }
+.drawer .drawer-head { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; }
+.drawer-head .drawer-art { width: 52px; }
+.drawer-title { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.drawer-title h2 { font-size: 22px; line-height: 1; }
+.drawer-title .well-label { font-size: 14px; }
+.drawer-verdict { margin: 0; padding: 6px 10px; border-radius: 10px; border: 2px solid var(--ink); font-size: 13.5px; }
+.drawer-verdict.ok { background: #e3f5e9; }
+.drawer-verdict.bad { background: #fde3e0; }
+.well-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ws { border: 2px solid var(--ink); border-radius: 10px; background: #fff; padding: 5px 8px; display: flex; flex-direction: column; min-width: 0; }
+.ws-k { font-size: 11.5px; color: #6b5b49; white-space: nowrap; }
+.ws b { font-size: 15px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws small { font-size: 11px; color: #6b5b49; }
+.ds { display: flex; flex-direction: column; gap: 6px; }
+.ds h3 { font-size: 13px !important; margin: 0 !important; }
+.ds-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.seg-btn { border: 2px solid var(--ink); border-radius: 8px; padding: 5px 2px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; line-height: 1.1; }
+.seg-btn.state-ok { background: #cdeed8; } .seg-btn.state-warn { background: #f8e2a8; } .seg-btn.state-bad { background: #f7c4bf; }
+.btn-col { display: flex; flex-direction: column; gap: 5px; }
+.advanced-box { border: 2px dashed rgba(58,44,38,.4); border-radius: 10px; padding: 6px 10px; }
+.advanced-box summary { cursor: pointer; font-weight: 700; font-size: 13.5px; }
+.advanced-box[open] summary { margin-bottom: 6px; }

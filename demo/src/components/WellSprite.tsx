@@ -45,9 +45,11 @@ export function WellSprite({ state, wellId, selected, onSelect }: Props) {
       aria-label={`${well.name}: ${ui.label}. Abrir detalle`}
       aria-pressed={selected}
     >
-      <span className="well-name">{well.name}</span>
-      <span className={`badge ${ui.cls}`}>
-        <span aria-hidden="true">{ui.icon}</span> {ui.label}
+      <span className={`well-label ${ui.cls}`}>
+        <b>{well.name.replace('Pozo ', '')}</b>
+        <span>
+          <span aria-hidden="true">{ui.icon}</span> {ui.label}
+        </span>
       </span>
       <span className="well-stage">
         <Sprite name={physicalSprite(state, wellId)} alt={`Ilustración de ${well.name}`} className={`well-art ${well.powered ? '' : 'unpowered'}`} />
@@ -57,12 +59,14 @@ export function WellSprite({ state, wellId, selected, onSelect }: Props) {
         </span>
         {silentFault && <span className="silent-fault" title="Falla física que nadie ha reportado todavía">?</span>}
       </span>
-      <span className="well-meta">
-        <span className={`chip ${linkCls}`}>{linkText}</span>
-        {pending > 0 && <span className="chip gray">✉ {pending} en cola</span>}
-        {local.lowReserve && local.primary === 'ENABLED' && <span className="chip warn">Reserva baja</span>}
-        {diverges && <span className="chip gray">Pueblo: {describeStatus(center.status, center.factors).label}</span>}
-      </span>
+      {(linkCls !== 'ok' || pending > 0 || (local.lowReserve && local.primary === 'ENABLED') || diverges) && (
+        <span className="well-meta">
+          {linkCls !== 'ok' && <span className={`chip ${linkCls}`}>{linkText}</span>}
+          {pending > 0 && <span className="chip gray">✉ {pending} en cola</span>}
+          {local.lowReserve && local.primary === 'ENABLED' && <span className="chip warn">Reserva baja</span>}
+          {diverges && <span className="chip gray">Semáforo: {describeStatus(center.status, center.factors).label}</span>}
+        </span>
+      )}
     </button>
   );
 }

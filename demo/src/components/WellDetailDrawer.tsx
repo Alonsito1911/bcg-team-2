@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { DEMO_CONFIG } from '../domain/config';
-import { deriveLocal, formatClock } from '../domain/state';
+import { deriveLocal } from '../domain/state';
 import type { SimulationState, WaterTest, WellId } from '../domain/types';
 import type { UiAction } from '../store';
 import { Sprite } from '../assets/Sprite';
 import { ArchitectureMiniDemo } from './ArchitectureMiniDemo';
 import { LogList } from './EventTimeline';
-import { QUICK_STATES, spriteForState, STATE_UI } from './labels';
+import { describeStatus, QUICK_STATES, spriteForState } from './labels';
+import { diagnoseLink, pendingFor } from '../domain/transport';
 
 type Tab = 'estado' | 'comunicacion' | 'historial';
 
@@ -29,7 +30,6 @@ export function WellDetailDrawer({ state, wellId, onClose, dispatch }: Props) {
   const [tab, setTab] = useState<Tab>('estado');
   const well = state.wells[wellId];
   const d = deriveLocal(state, wellId);
-  const ui = STATE_UI[d.primary];
   const f = well.factors;
   const [volume, setVolume] = useState(Math.round(f.waterVolumePct));
   const [test, setTest] = useState<WaterTest>(f.waterTest);
@@ -49,25 +49,32 @@ export function WellDetailDrawer({ state, wellId, onClose, dispatch }: Props) {
   }, [onClose]);
 
   const daysLeft = Math.max(0, Math.round((f.testValidUntil - state.clockMs) / DEMO_CONFIG.dayMs));
+  const status = describeStatus(d.primary, f);
+  const known = describeStatus(state.center[wellId].status, state.center[wellId].factors);
+  const diag = diagnoseLink(state, wellId);
+  const pending = pendingFor(state, wellId).length;
   const goods = well.communityReports.filter((r) => r.kind === 'GOOD').length;
   const bads = well.communityReports.filter((r) => r.kind === 'BAD').length;
 
   return (
     <aside className="drawer" role="dialog" aria-label={`Detalle de ${well.name}`}>
-      <header>
+      <header className="drawer-head">
         <Sprite name={spriteForState(d.primary)} alt="" className="drawer-art" />
-        <div>
-          <h2>
-            {well.name} · <span className={`txt-${ui.cls}`}>{ui.label}</span>
-          </h2>
-          <p>
-            ¿Puede usarse ahora? <b>{d.primary === 'ENABLED' ? 'Sí' : 'No'}</b> · {d.reasons[0]}
-          </p>
+        <div className="drawer-title">
+          <h2>{well.name}</h2>
+          <span className={`well-label ${status.cls}`}>
+            <span>
+              <span aria-hidden="true">{status.icon}</span> {status.label}
+            </span>
+          </span>
         </div>
         <button type="button" className="close" onClick={onClose} aria-label="Cerrar detalle">
           ×
         </button>
       </header>
+      <p className={`drawer-verdict ${d.primary === 'ENABLED' ? 'ok' : 'bad'}`}>
+        <b>{d.primary === 'ENABLED' ? 'Se puede usar' : 'No usar'}</b> · {d.reasons[0]}
+      </p>
       <nav className="tabs" role="tablist">
         {(
           [
@@ -84,115 +91,144 @@ export function WellDetailDrawer({ state, wellId, onClose, dispatch }: Props) {
 
       {tab === 'estado' && (
         <div className="tab-body">
-          <h3>¿Qué le pasa en el terreno?</h3>
-          <div className="btn-grid">
-            {QUICK_STATES.map((q) => (
-              <button key={q.preset} type="button" className={`btn state-${q.cls}`} onClick={() => dispatch({ type: 'QUICK_PRESET', wellId, preset: q.preset })}>
-                {q.icon} {q.label}
-              </button>
-            ))}
-          </div>
-          <p className="hint">
-            {state.phase === 'MVP'
-              ? 'En MVP la falla es silenciosa: el pueblo se entera cuando alguien la reporta o la guardiana la revisa.'
-              : 'En Estrella los sensores informan sin agua y válvula; la contaminación sigue necesitando a una persona.'}
-          </p>
-
-          <h3>Caja comunitaria del pozo</h3>
-          <div className="btn-grid">
-            <button type="button" className="btn state-ok big" onClick={() => dispatch({ type: 'COMMUNITY_REPORT', wellId, kind: 'GOOD' })}>
-              👍 BIEN
-            </button>
-            <button
-              type="button"
-              className="btn state-bad big"
-              onClick={() =>
-                dispatch({
-                  type: 'COMMUNITY_REPORT',
-                  wellId,
-                  kind: 'BAD',
-                  reason: well.hiddenContamination ? 'CONTAMINATION' : well.physicalValveBroken ? 'VALVE' : well.physicalDry ? 'NO_WATER' : 'OTHER',
-                })
-              }
-            >
-              👎 MAL
-            </button>
-          </div>
-          <p className="hint">
-            MAL <b>deshabilita</b> el pozo en el semáforo hasta que la guardiana lo revise. BIEN se guarda como evidencia y nunca habilita. Reportes: 👍 {goods} · 👎 {bads}
-          </p>
-
-          <h3>Guardiana de la ONG (externa al pueblo)</h3>
-          <div className="btn-grid">
-            <button type="button" className="btn" onClick={() => dispatch({ type: 'SEND_PERSON', personId: 'worker', target: wellId })}>
-              🧪 Enviar a verificar
-            </button>
-            <button type="button" className="btn" onClick={() => dispatch({ type: 'WORKER_REPAIR', wellId })} disabled={f.valveCondition !== 'DAMAGED'}>
-              🔧 Reparar válvula
-            </button>
-            <button type="button" className="btn" onClick={() => dispatch({ type: 'TREAT_WELL', wellId })} disabled={!well.hiddenContamination}>
-              🧴 Tratar pozo (cloración)
-            </button>
-            <button type="button" className="btn" onClick={() => dispatch({ type: 'QUICK_PRESET', wellId, preset: 'CONFIRMED_POSITIVE' })}>
-              🧾 Forzar prueba positiva
-            </button>
+          <div className="well-stats">
+            <div className="ws">
+              <span className="ws-k">💧 Agua</span>
+              <b>{Math.round(f.waterVolumePct)}%</b>
+              <small>{d.primary === 'NO_WATER' ? 'bajo el mínimo' : d.lowReserve ? 'reserva baja' : 'suficiente'}</small>
+            </div>
+            <div className="ws">
+              <span className="ws-k">⚙ Válvula</span>
+              <b>{f.valveCondition === 'OK' ? 'Operativa' : 'Dañada'}</b>
+              <small>sensor de bomba</small>
+            </div>
+            <div className="ws">
+              <span className="ws-k">🧪 Prueba</span>
+              <b>{f.waterTest === 'VALID_NEGATIVE' ? 'Negativa' : f.waterTest === 'CONFIRMED_POSITIVE' ? 'Positiva' : 'Sin verificar'}</b>
+              <small>{f.waterTest === 'VALID_NEGATIVE' ? `vigente ${daysLeft} días` : 'simulada'}</small>
+            </div>
+            <div className="ws">
+              <span className="ws-k">🚦 Semáforo</span>
+              <b className={`txt-${known.cls}`}>{known.label}</b>
+              <small>lo que sabe el pueblo</small>
+            </div>
+            <div className="ws">
+              <span className="ws-k">📡 Enlace</span>
+              <b>{!well.powered ? 'Sin energía' : diag.tone === 'ok' ? 'Activo' : diag.tone === 'warn' ? 'Vía relevo' : 'Sin enlace'}</b>
+              <small>{pending ? `${pending} en cola` : `batería ${well.batteryPct}%`}</small>
+            </div>
+            <div className="ws">
+              <span className="ws-k">👥 Reportes</span>
+              <b>
+                👍 {goods} · 👎 {bads}
+              </b>
+              <small>caja comunitaria</small>
+            </div>
           </div>
 
-          <h3>Factores (modo avanzado)</h3>
-          <label className="row">
-            <span>💧 Volumen {volume}% <small>(sensor)</small></span>
-            <input type="range" min={0} max={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
-          </label>
-          <label className="row">
-            <span>🧪 Prueba <small>(trabajadora)</small></span>
-            <select value={test} onChange={(e) => setTest(e.target.value as WaterTest)}>
-              {(Object.keys(TEST_LABEL) as WaterTest[]).map((t) => (
-                <option key={t} value={t}>
-                  {TEST_LABEL[t]}
-                </option>
+          <section className="ds">
+            <h3>Simular en el terreno</h3>
+            <div className="seg">
+              {QUICK_STATES.map((q) => (
+                <button key={q.preset} type="button" className={`seg-btn state-${q.cls}`} onClick={() => dispatch({ type: 'QUICK_PRESET', wellId, preset: q.preset })}>
+                  <span aria-hidden="true">{q.icon}</span> {q.label}
+                </button>
               ))}
-            </select>
-          </label>
-          <label className="row">
-            <span>⚙ Válvula <small>(sensor de bomba)</small></span>
-            <select value={valve} onChange={(e) => setValve(e.target.value as 'OK' | 'DAMAGED')}>
-              <option value="OK">Operativa</option>
-              <option value="DAMAGED">Dañada</option>
-            </select>
-          </label>
-          <label className="row">
-            <span>⏳ Vigencia (días)</span>
-            <input type="number" min={1} max={365} value={validity} onChange={(e) => setValidity(Number(e.target.value))} />
-          </label>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() =>
-              dispatch({ type: 'EDIT_FACTORS', wellId, edit: { waterVolumePct: volume, valveCondition: valve, waterTest: test, validityDays: test !== f.waterTest ? validity : undefined } })
-            }
-          >
-            Aplicar al escenario
-          </button>
-          <dl className="facts">
-            <dt>Última prueba</dt>
-            <dd>
-              {TEST_LABEL[f.waterTest]} · {formatClock(f.testTakenAt)} · {f.waterTest === 'VALID_NEGATIVE' ? `vigente ${daysLeft} días` : '—'}
-            </dd>
-            <dt>Verificado por</dt>
-            <dd>{f.testVerifiedBy}</dd>
-            <dt>Sospecha</dt>
-            <dd>{f.reportedAnomaly === 'SUSPECTED' ? 'Sí (reporte comunitario)' : 'No'}</dd>
-            <dt>Contaminación oculta</dt>
-            <dd>{well.hiddenContamination ? 'Sí (solo visible para el operador)' : 'No'}</dd>
-            <dt>Batería</dt>
-            <dd>{well.powered ? `${well.batteryPct}%` : 'Sin energía'}</dd>
-            {d.secondary.length > 0 && (
-              <>
-                <dt>Problemas adicionales</dt>
-                <dd>{d.secondary.map((x) => STATE_UI[x].label).join(', ')}</dd>
-              </>
-            )}
-          </dl>
+            </div>
+            <p className="hint">
+              {state.phase === 'MVP' ? 'MVP: la falla es silenciosa hasta que alguien la reporta o la guardiana la revisa.' : 'Estrella: sin agua y válvula se detectan solas; la contaminación necesita a una persona.'}
+            </p>
+          </section>
+
+          <div className="ds-row">
+            <section className="ds">
+              <h3>Caja del pozo</h3>
+              <div className="btn-grid">
+                <button type="button" className="btn state-ok" onClick={() => dispatch({ type: 'COMMUNITY_REPORT', wellId, kind: 'GOOD' })}>
+                  👍 BIEN
+                </button>
+                <button
+                  type="button"
+                  className="btn state-bad"
+                  onClick={() =>
+                    dispatch({
+                      type: 'COMMUNITY_REPORT',
+                      wellId,
+                      kind: 'BAD',
+                      reason: well.hiddenContamination ? 'CONTAMINATION' : well.physicalValveBroken ? 'VALVE' : well.physicalDry ? 'NO_WATER' : 'OTHER',
+                    })
+                  }
+                >
+                  👎 MAL
+                </button>
+              </div>
+              <p className="hint">MAL deshabilita el pozo hasta que la guardiana lo revise.</p>
+            </section>
+            <section className="ds">
+              <h3>Guardiana</h3>
+              <div className="btn-col">
+                <button type="button" className="btn" onClick={() => dispatch({ type: 'SEND_PERSON', personId: 'worker', target: wellId })}>
+                  🧪 Verificar
+                </button>
+                {f.valveCondition === 'DAMAGED' || well.physicalValveBroken ? (
+                  <button type="button" className="btn" onClick={() => dispatch({ type: 'WORKER_REPAIR', wellId })}>
+                    🔧 Reparar válvula
+                  </button>
+                ) : null}
+                {well.hiddenContamination ? (
+                  <button type="button" className="btn" onClick={() => dispatch({ type: 'TREAT_WELL', wellId })}>
+                    🧴 Clorar pozo
+                  </button>
+                ) : null}
+              </div>
+            </section>
+          </div>
+
+          <details className="ds advanced-box">
+            <summary>Ajuste fino (avanzado)</summary>
+            <label className="row">
+              <span>💧 Volumen {volume}%</span>
+              <input type="range" min={0} max={100} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
+            </label>
+            <label className="row">
+              <span>🧪 Prueba</span>
+              <select value={test} onChange={(e) => setTest(e.target.value as WaterTest)}>
+                {(Object.keys(TEST_LABEL) as WaterTest[]).map((t) => (
+                  <option key={t} value={t}>
+                    {TEST_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="row">
+              <span>⚙ Válvula</span>
+              <select value={valve} onChange={(e) => setValve(e.target.value as 'OK' | 'DAMAGED')}>
+                <option value="OK">Operativa</option>
+                <option value="DAMAGED">Dañada</option>
+              </select>
+            </label>
+            <label className="row">
+              <span>⏳ Vigencia (días)</span>
+              <input type="number" min={1} max={365} value={validity} onChange={(e) => setValidity(Number(e.target.value))} />
+            </label>
+            <div className="btn-grid">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() =>
+                  dispatch({ type: 'EDIT_FACTORS', wellId, edit: { waterVolumePct: volume, valveCondition: valve, waterTest: test, validityDays: test !== f.waterTest ? validity : undefined } })
+                }
+              >
+                Aplicar
+              </button>
+              <button type="button" className="btn" onClick={() => dispatch({ type: 'QUICK_PRESET', wellId, preset: 'CONFIRMED_POSITIVE' })}>
+                🧾 Forzar positiva
+              </button>
+            </div>
+            <p className="hint">
+              Verificado por: {f.testVerifiedBy} · contaminación oculta: {well.hiddenContamination ? 'sí' : 'no'}
+            </p>
+          </details>
         </div>
       )}
 

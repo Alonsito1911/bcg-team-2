@@ -401,3 +401,24 @@
     transform: none;
   }
 }
+
+/* Tarjeta compacta y minimizable (pantalla del notebook). */
+.gd-pairing.gd-pairing--compact { position: relative; flex-direction: row; align-items: center; gap: 12px; max-width: 360px; padding: 12px 14px; text-align: left; }
+.gd-pairing--compact .gd-pairing__qr img, .gd-pairing--compact .gd-pairing__qr-placeholder { width: 132px; }
+.gd-pairing__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gd-pairing--compact .gd-pairing__label { font-size: 0.7rem; }
+.gd-pairing--compact .gd-pairing__room { font-size: 1.5rem; letter-spacing: 0.08em; }
+.gd-pairing--compact .gd-pairing__phone { margin: 0; font-size: 0.85rem; padding: 2px 8px; }
+.gd-pairing--compact small { font-size: 0.7rem; line-height: 1.25; color: var(--gd-muted); }
+.gd-pairing--compact .gd-pairing__warn { color: #a3261e; }
+.gd-pairing__copy { align-self: flex-start; border: 1px solid var(--gd-line); background: #fff; border-radius: 8px; padding: 3px 10px; font: inherit; font-size: 0.8rem; cursor: pointer; }
+.gd-pairing__min { position: absolute; top: 4px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--gd-line); background: #fff; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.gd-pairing-chip { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #3a2c26; background: rgba(255, 249, 237, 0.95); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.gd-pairing-chip__dot { width: 9px; height: 9px; border-radius: 50%; background: #d99a1b; }
+.gd-pairing-chip__dot.ok { background: #2b9b5a; }
+.gd-pairing.gd-pairing--compact .gd-pairing__qr img, .gd-pairing.gd-pairing--compact .gd-pairing__qr-placeholder { width: 132px !important; max-width: none; flex: none; }
+.gd-pairing.gd-pairing--compact .gd-pairing__qr { flex: none; }
+.gd-pairing.gd-pairing--compact .gd-pairing__info { padding-right: 18px; }
+.gd-pairing.gd-pairing--compact { max-width: 400px; width: 400px; }
+.gd-pairing.gd-pairing--compact .gd-pairing__room { white-space: nowrap; }
+.gd-pairing.gd-pairing--compact .gd-pairing__phone { white-space: nowrap; align-self: flex-start; }

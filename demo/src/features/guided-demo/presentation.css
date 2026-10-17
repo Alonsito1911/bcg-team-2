@@ -15,7 +15,7 @@
 .gd-caption span { font-size: clamp(13px, 1.1vw, 17px); }
 .gd-step { font-size: 12px !important; color: #6b4a32; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 
-.gd-pairing-slot { position: fixed; top: 12px; left: 12px; z-index: 1008; max-width: 320px; }
+.gd-pairing-slot { position: fixed; top: 12px; left: 12px; z-index: 1008; max-width: 400px; }
 
 .gd-toast { position: fixed; top: 54px; right: 14px; max-width: 380px; background: #fffdf7; border: 2.5px solid #3a2c26; border-left: 8px solid #d8483e; border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; z-index: 1006; animation: gd-in .45s ease-out; font-size: 14px; }
 .gd-toast b { font-size: 16px; }

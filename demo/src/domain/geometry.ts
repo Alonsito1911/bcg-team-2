@@ -59,10 +59,13 @@ export function pathLength(points: Point[]): number {
   return total;
 }
 
-/** Ruta completa desde la posición actual hasta un pozo, siguiendo senderos. */
+/**
+ * Ruta desde la posición actual hasta un pozo, siguiendo senderos.
+ * Si el punto más cercano del sendero de ESE pozo queda más cerca que la plaza, se entra
+ * al sendero ahí y se sigue hacia el pozo (sin rodear por la plaza).
+ */
 export function routeToWell(from: Point, wellId: WellId): Point[] {
   const trail = TRAILS[wellId];
-  // Si ya estamos sobre el sendero de este pozo, continuar desde el punto más cercano.
   let nearest = 0;
   let best = Infinity;
   trail.forEach((p, i) => {
@@ -72,7 +75,7 @@ export function routeToWell(from: Point, wellId: WellId): Point[] {
       nearest = i;
     }
   });
-  if (best < 4 && nearest > 0) return trail.slice(nearest);
+  if (nearest > 0 && (best < 4 || best < sceneDistance(from, PLAZA))) return trail.slice(nearest);
   return [...routeToPlaza(from), ...trail.slice(1)];
 }
 
