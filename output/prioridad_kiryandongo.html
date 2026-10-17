@@ -32,6 +32,10 @@
  .kpis b{display:block;font-size:19px}
  .kpis span{font-size:11px;color:#555}
  .kpis div.alerta{background:#fde8e8}.kpis div.alerta b{color:#c92a2a}
+ .aldea{width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid #1f4e9e;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 6px #0005}
+ .aldea.alerta{border-color:#c92a2a;background:#fde3e0;animation:pulso 1s ease-in-out infinite}
+ @keyframes pulso{50%{box-shadow:0 0 0 10px #c92a2a33}}
+ .aldea-tip{font-weight:700}
  @media (max-width:800px){body{flex-direction:column}#map{height:55%;flex:none}#lado{width:100%;height:45%;border-left:none;border-top:1px solid #ddd}}
 </style></head><body><div id="map"></div><div id="lado"></div>
 <script>
@@ -89,6 +93,16 @@ for(const p of [...P].reverse()){
 }
 map.fitBounds(caja,{padding:[10,10]});
 
+// Pueblo piloto de la demo WaterLight: lo representa la bomba KIR-0005 de Bweyale
+// (mismo id que PILOT_PUMP en demo/src/features/guided-demo/demoMachine.ts).
+const PILOTO_ID='6GHJW47Q+VXW', piloto=P.find(p=>p.wpdx_id===PILOTO_ID);
+const aldea=piloto&&L.marker([+piloto.lat,+piloto.lon],{zIndexOffset:2000,
+  icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="aldea">🏘️</div>'})})
+  .bindTooltip('Pueblo piloto (demo)',{permanent:true,direction:'right',offset:[16,0],className:'aldea-tip'})
+  .bindPopup(`<b>Pueblo piloto (demo WaterLight)</b><br>Pozos A, B y C de la simulación, representados por la bomba
+    #${piloto.ranking} (${piloto.subcondado}, ${piloto.motivo}).<br><small>La alerta de la demo es simulada.</small>`)
+  .addTo(map);
+
 // Panel lateral
 const res={};for(const k in NIV)res[k]={n:0,p:0};
 for(const p of P){res[p.nivel].n++;res[p.nivel].p+=+p.personas_afectadas;}
@@ -107,7 +121,7 @@ lado.innerHTML=`<h3>Prioridad de bombas · Kiryandongo</h3>
   <div><span>Personas afectadas</span><b>${fmt(res['Crítico'].p)}</b><span>en bombas críticas</span></div>
   <div><span>Bombas rotas</span><b>${rotas}</b><span>${Math.round(rotas/P.length*100)}% del total</span></div>
   <div><span>Uso vs capacidad</span><b>${Math.round(usuariosDist/(operativas*300)*100)}%</b><span>distrito</span></div>
-  <div><span>Críticas con cobertura LoRa</span><b>${LORA.criticas_con_todo}/${LORA.criticas_total}</b><span>${ANTENAS.length} torre + ${NUEVOS.length} gateways nuevos</span></div>
+  <div><span>Críticas con cobertura LoRa</span><b>${LORA.criticas_con_todo}/${LORA.criticas_total}</b><span>${ANTENAS.length} torres existentes + ${NUEVOS.length} gateways nuevos</span></div>
   <div id="kpiAlertas"><span>Alertas activas</span><b>–</b><span>sensores en vivo</span></div>
  </div>
  <h4>Sensores en vivo</h4><div id="vivo"><small>Conectando con Azure…</small></div><div id="alertasVivo"></div>
@@ -176,6 +190,8 @@ function actualizarVivo(){
       m.getPopup().setContent(popupBase[id]+`<hr style="margin:4px 0"><b>Sensor (${s.codigo})</b>: ${v?v[1]:'normal'} · ${s.ultimo.slice(11,16)}<br>
         Hoy ${Math.round(s.litros_dia).toLocaleString('es')} L · turbidez ${s.turbidez} NTU · batería ${Math.round(s.bateria*100)}%`);
     }
+    const sp=e.bombas[PILOTO_ID], icono=aldea&&aldea.getElement()&&aldea.getElement().querySelector('.aldea');
+    if(icono) icono.classList.toggle('alerta',!!sp&&sp.estado!=='normal');
     const activas=cuenta.posible_falla+cuenta.riesgo_contaminacion, kpi=document.getElementById('kpiAlertas');
     kpi.classList.toggle('alerta',activas>0);
     kpi.querySelector('b').textContent=activas;
