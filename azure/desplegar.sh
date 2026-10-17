@@ -37,8 +37,16 @@ EOF
 }
 guardar_env
 
-echo "== 1/6 Grupo de recursos $RG ($LOC)"
-"$AZ" group create -n "$RG" -l "$LOC" -o none
+echo "== 1/6 Grupo de recursos $RG"
+# En suscripciones compartidas (hackathon) suele haber permiso solo dentro de un grupo
+# ya creado: si existe, se usa tal cual y en su misma región.
+if RG_LOC=$("$AZ" group show -n "$RG" --query location -o tsv 2>/dev/null); then
+  LOC="$RG_LOC"
+  echo "   usando el grupo existente ($LOC)"
+else
+  "$AZ" group create -n "$RG" -l "$LOC" -o none
+fi
+guardar_env
 
 echo "== 2/6 IoT Hub $HUB ($HUB_SKU) y dispositivo $DEVICE"
 "$AZ" extension add --name azure-iot --upgrade -y -o none 2>/dev/null || true
