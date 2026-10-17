@@ -15,6 +15,7 @@ guardar el estado por bomba (por ejemplo en Table Storage) para no pisarse.
 import json
 import logging
 import os
+from typing import List
 
 import azure.functions as func
 from azure.core.exceptions import ResourceNotFoundError
@@ -33,7 +34,7 @@ def blob_estado():
 
 @app.event_hub_message_trigger(arg_name="eventos", event_hub_name="%IOTHUB_EVENTHUB_NAME%",
                                connection="IOTHUB_EVENTS", cardinality=func.Cardinality.MANY)
-def procesar_telemetria(eventos: list[func.EventHubEvent]):
+def procesar_telemetria(eventos: List[func.EventHubEvent]):  # el worker no acepta list[...]
     blob = blob_estado()
     try:
         estado = json.loads(blob.download_blob().readall())
