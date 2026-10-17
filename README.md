@@ -3,6 +3,7 @@
 Herramienta para decidir **qué bombas de agua reparar, revisar o monitorear primero**, según cuántas personas afecta cada una. Piloto: distrito de **Kiryandongo**, donde está un asentamiento de ~165.000 refugiados y donde las comunidades vecinas dependen de bombas manuales saturadas.
 
 Brief original del proyecto: [`proyecto_agua_uganda (1).md`](proyecto_agua_uganda%20(1).md).
+Documentación completa (requerimientos, stack, arquitectura, riesgos y futuros pasos): [`docs/documentacion.md`](docs/documentacion.md).
 
 ## Ver los resultados (sin instalar nada)
 
