@@ -72,6 +72,32 @@ Para cada bomba con dato 2016+ se calcula un nivel y las **personas afectadas**:
 - 2021–2022 fueron años secos, y el censo es de **febrero de 2022, en plena estación seca**.
 - Con 1 torre existente + 3 gateways LoRa nuevos se cubren **89 de las 91 bombas críticas** (supuesto: alcance de 10 km).
 
+## Demo IoT en Azure (monitoreo en vivo)
+
+Simula sensores en las 91 bombas críticas y muestra las alertas en un mapa en vivo:
+telemetría → **Azure IoT Hub** → **Azure Function** (reglas en [`src/iot/reglas.py`](src/iot/reglas.py)) → `estado.json` → mapa en un **Storage** con sitio web estático.
+
+**Probar sin Azure:**
+```bash
+python src/iot/preparar_web.py
+python src/iot/simulador.py --local --pausa 2
+python -m http.server -d output/iot_web 8000     # abrir http://localhost:8000
+```
+
+**Desplegar desde el navegador, con Azure Cloud Shell** (no hace falta instalar nada ni iniciar sesión en el PC):
+1. Entra a https://shell.azure.com y elige **Bash**.
+2. Corre:
+   ```bash
+   git clone https://github.com/Alonsito1911/bcg-team-2.git && cd bcg-team-2
+   bash azure/desplegar.sh                          # crea los recursos y muestra la URL del mapa
+   pip install --user azure-iot-device
+   python3 src/iot/simulador.py --azure --pausa 3   # envía la telemetría simulada
+   ```
+3. Abre la URL del mapa que imprimió el script.
+4. Al terminar, borra todo con `az group delete -n rg-agua-kiryandongo --yes`.
+
+Qué se ve: a las 12:00 simuladas, **KIR-0002 deja de bombear** (posible falla → SMS al mecánico); a las 13:00, **una lluvia enturbia 14 pozos poco profundos de Bweyale** (riesgo de contaminación → SMS al promotor de salud). El sobreuso queda como estado en el mapa, sin SMS. Los SMS se registran en los logs de la Function; el envío real (Africa's Talking o Twilio) queda por conectar.
+
 ## Fuentes de datos
 
 | Dato | Fuente | Licencia |

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo de bombas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+ html,body{height:100%;margin:0;font-family:system-ui,sans-serif}
+ body{display:flex}
+ #map{flex:1;height:100%}
+ #lado{width:360px;overflow:auto;padding:14px;box-sizing:border-box;font-size:13px;border-left:1px solid #ddd;background:#fff}
+ h3{margin:0 0 2px;font-size:15px} h4{margin:14px 0 6px;font-size:12px;color:#555;text-transform:uppercase}
+ .kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+ .kpi div{background:#f5f5f5;border-radius:6px;padding:8px}
+ .kpi b{display:block;font-size:20px}
+ .al{border-left:4px solid #999;padding:6px 8px;margin-bottom:6px;background:#fafafa;border-radius:4px}
+ .al small{color:#666}
+ .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+ #reloj{color:#666}
+ @media (max-width:800px){body{flex-direction:column}#map{height:55%;flex:none}#lado{width:100%;height:45%}}
+</style></head><body><div id="map"></div>
+<div id="lado">
+ <h3>Monitoreo en vivo · bombas críticas de Kiryandongo</h3>
+ <div id="reloj">Esperando datos…</div>
+ <h4>Estado</h4><div class="kpi" id="kpi"></div>
+ <h4>Alertas (SMS simulados)</h4><div id="alertas"></div>
+ <p><small>Telemetría simulada → Azure IoT Hub → Azure Function → estado.json. Se actualiza cada 3 s.</small></p>
+</div>
+<script>
+const COLOR={normal:'#2b8a3e',sobreuso:'#f08c00',riesgo_contaminacion:'#1c7ed6',posible_falla:'#c92a2a'};
+const NOMBRE={normal:'Normal',sobreuso:'Sobreuso',riesgo_contaminacion:'Riesgo contaminación',posible_falla:'Posible falla'};
+const map=L.map('map',{preferCanvas:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap | Datos: WPDx'}).addTo(map);
+const marcas={};
+let BOMBAS=[];
+
+fetch('bombas.json').then(r=>r.json()).then(bs=>{
+  BOMBAS=bs;
+  for(const b of bs){
+    marcas[b.pozo_id]=L.circleMarker([b.lat,b.lon],{radius:7,color:'#fff',weight:1.5,fillColor:COLOR.normal,fillOpacity:.9})
+      .bindPopup('').addTo(map);
+  }
+  map.fitBounds(L.latLngBounds(bs.map(b=>[b.lat,b.lon])),{padding:[30,30]});
+  actualizar(); setInterval(actualizar,3000);
+});
+
+function actualizar(){
+  fetch('estado.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(e=>{
+    if(!e) return;
+    const cuenta={normal:0,sobreuso:0,riesgo_contaminacion:0,posible_falla:0};
+    for(const b of BOMBAS){
+      const s=e.bombas[b.pozo_id], est=s?s.estado:'normal';
+      cuenta[est]++;
+      const m=marcas[b.pozo_id];
+      m.setStyle({fillColor:COLOR[est],radius:est==='normal'?7:11});
+      m.setPopupContent(`<b>${b.codigo}</b> · ${NOMBRE[est]}<br>${b.subcondado}<br>Usuarios: ${b.usuarios}
+        ${s?`<br>Hoy: ${Math.round(s.litros_dia).toLocaleString('es')} L · turbidez ${s.turbidez} NTU<br>Batería ${Math.round(s.bateria*100)}% · ${s.ultimo.slice(11,16)}`:''}`);
+    }
+    document.getElementById('reloj').textContent=`Hora simulada: ${e.actualizado?e.actualizado.replace('T',' ').slice(0,16):'-'} · ${e.eventos} mensajes procesados`;
+    document.getElementById('kpi').innerHTML=Object.keys(COLOR).map(k=>
+      `<div><span class="dot" style="background:${COLOR[k]}"></span>${NOMBRE[k]}<b>${cuenta[k]}</b></div>`).join('');
+    document.getElementById('alertas').innerHTML=e.alertas.filter(a=>a.sms).slice(0,40).map(a=>
+      `<div class="al" style="border-color:${COLOR[a.tipo]}"><b>${a.codigo}</b> · ${a.ts.slice(11,16)}<br>${a.mensaje}</div>`).join('')||'<small>Sin alertas todavía.</small>';
+  }).catch(()=>{});
+}
+</script></body></html>
