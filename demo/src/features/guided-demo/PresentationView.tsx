@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Sprite } from '../../assets/Sprite';
 import { OngDashboard } from '../../components/OngDashboard';
+import { TeamOngDashboard } from '../../components/TeamOngDashboard';
 import { WorldView } from '../../components/WorldView';
 import { applyAction } from '../../domain/engine';
 import type { SimulationState } from '../../domain/types';
 import { createSession, sendCommand } from './api/demoClient';
-import { applyDemoCommand, DEMO_STEPS, initialSnapshot, REPORT_STEP, type DemoCommandType, type DemoSnapshot } from './demoMachine';
+import { applyDemoCommand, DEMO_STEPS, initialSnapshot, PILOT_PUMP, REPORT_STEP, type DemoCommandType, type DemoSnapshot } from './demoMachine';
 import { buildStateForStep, freshDemoState, stepForward } from './director';
 import { PairingPanel } from './PairingPanel';
 import { useDemoSession } from './useDemoSession';
@@ -138,12 +139,29 @@ export function PresentationView({ onExit, joinRoom }: { onExit: () => void; joi
   if (step === DASHBOARD_STEP && snapshot?.reported) {
     return (
       <div className="gd-pres gd-pres-ong">
-        <OngDashboard
-          state={sim}
-          dispatch={() => undefined}
+        <TeamOngDashboard
+          room={session?.mode === 'remote' ? session.room : 'latest'}
           onBack={() => void command('PREV')}
-          focusAlert={{ eventId: session?.mode === 'remote' ? snapshot.reportEventId : null, reportedAt: snapshot.reportedAt }}
-          presentation
+          backLabel="◂ Volver a la escena"
+          banner={
+            <div className="team-ong-alert" role="alert">
+              <span className="ong-alert-dot" aria-hidden="true" />
+              <b>Alerta recibida · Pozo B contaminado</b>
+              <span>
+                pueblo piloto → bomba {PILOT_PUMP.codigo} ({PILOT_PUMP.lugar}) en el mapa · prueba simulada validada por la guardiana
+                {session?.mode === 'remote' && snapshot.reportEventId ? ` · evento real #${snapshot.reportEventId.slice(0, 8)}` : ''}
+              </span>
+            </div>
+          }
+          fallback={
+            <OngDashboard
+              state={sim}
+              dispatch={() => undefined}
+              onBack={() => void command('PREV')}
+              focusAlert={{ eventId: session?.mode === 'remote' ? snapshot.reportEventId : null, reportedAt: snapshot.reportedAt }}
+              presentation
+            />
+          }
         />
         <Chrome step={step} onExit={onExit} status={session?.mode === 'local' ? 'local' : remote.status} keyboardUsed={keyboardUsed} />
       </div>

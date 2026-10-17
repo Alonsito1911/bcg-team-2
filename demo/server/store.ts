@@ -152,6 +152,17 @@ export class DemoStore {
     return { snapshot, events: this.getEvents(room, snapshot.epoch) };
   }
 
+  /** Sala actualizada más recientemente (la vista inicial de la app muestra su estado). */
+  latestRoom(): string | null {
+    const rows = this.db.prepare('SELECT room, snapshot FROM sessions').all() as { room: string; snapshot: string }[];
+    let best: { room: string; at: string } | null = null;
+    for (const r of rows) {
+      const at = (JSON.parse(r.snapshot) as DemoSnapshot).updatedAt;
+      if (!best || at > best.at) best = { room: r.room, at };
+    }
+    return best?.room ?? null;
+  }
+
   checkToken(room: string, token: unknown): 'NOT_FOUND' | 'UNAUTHORIZED' | 'OK' {
     const row = this.getRow(room);
     if (!row) return 'NOT_FOUND';

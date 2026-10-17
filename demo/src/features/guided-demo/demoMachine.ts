@@ -162,3 +162,15 @@ export function applyDemoCommand(
       };
   }
 }
+
+/**
+ * Bomba real del dataset del equipo (WPDx, Kiryandongo) que representa al Pozo B del
+ * pueblo piloto en el dashboard de la ONG. La alerta sobre ella es SIMULADA.
+ */
+export const PILOT_PUMP = { wpdxId: '6GHJW47Q+VXW', codigo: 'KIR-0005', lugar: 'Bweyale' } as const;
+
+/** La ONG "conoce" la alerta solo cuando la historia llegó a ese punto (y vuelve a normal al retroceder o reiniciar). */
+export function ongKnowsAlert(s: DemoSnapshot | null): boolean {
+  const ongStep = DEMO_STEPS.findIndex((x) => x.id === 'ngo-alert');
+  return !!s && s.reported && s.step >= ongStep;
+}

@@ -6,6 +6,7 @@ import { useSim } from '../store';
 import { ControlPanel } from './ControlPanel';
 import { EventTimeline } from './EventTimeline';
 import { OngDashboard } from './OngDashboard';
+import { TeamOngDashboard } from './TeamOngDashboard';
 import { WellDetailDrawer } from './WellDetailDrawer';
 import { WorldView } from './WorldView';
 import { PresentationView } from '../features/guided-demo/PresentationView';
@@ -52,7 +53,12 @@ export function App() {
     return (
       <div className="app-ong">
         <SvgDefs />
-        <OngDashboard state={state} dispatch={dispatch} onBack={() => setView('sim')} />
+        <TeamOngDashboard
+          room="latest"
+          onBack={() => setView('sim')}
+          backLabel="◂ Volver al mapa"
+          fallback={<OngDashboard state={state} dispatch={dispatch} onBack={() => setView('sim')} />}
+        />
       </div>
     );
   }

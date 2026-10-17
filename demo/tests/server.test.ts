@@ -269,6 +269,33 @@ describe('backend de la demo guiada', () => {
     await reader.cancel().catch(() => undefined);
   });
 
+  it('dashboard ONG del equipo: HTML sin cambios y estado.json en vivo (alerta y vuelta a normal)', async () => {
+    const html = await fetch(`${base()}/ong/latest/`);
+    expect(html.status).toBe(200);
+    expect(await html.text()).toContain("fetch('estado.json?t='");
+    const estado = async (room: string) => (await (await fetch(`${base()}/ong/${room}/estado.json`)).json()) as {
+      bombas: Record<string, { estado: string }>;
+      alertas: { codigo: string }[];
+    };
+    const s = await createSession();
+    let snap = await advanceToReport(s);
+    expect((await estado(s.room)).bombas['6GHJW47Q+VXW'].estado).toBe('normal');
+    snap = (await command(s, 'REPORT_CONTAMINATION', snap.revision)).body.snapshot!;
+    // El pueblo ya sabe, pero la ONG todavía no (paso de la alerta al pueblo).
+    expect((await estado(s.room)).alertas).toHaveLength(0);
+    snap = (await command(s, 'NEXT', snap.revision)).body.snapshot!;
+    const on = await estado(s.room);
+    expect(on.bombas['6GHJW47Q+VXW'].estado).toBe('riesgo_contaminacion');
+    expect(on.alertas[0].codigo).toBe('KIR-0005');
+    expect((await estado('latest')).alertas).toHaveLength(1);
+    snap = (await command(s, 'PREV', snap.revision)).body.snapshot!;
+    expect((await estado(s.room)).bombas['6GHJW47Q+VXW'].estado).toBe('normal');
+    await command(s, 'RESET', snap.revision);
+    const off = await estado(s.room);
+    expect(off.bombas['6GHJW47Q+VXW'].estado).toBe('normal');
+    expect(off.alertas).toHaveLength(0);
+  });
+
   it('rate limit: más de 20 comandos en 10 s → 429', async () => {
     const s = await createSession();
     const statuses: number[] = [];

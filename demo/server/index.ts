@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildEstado, readOngHtml } from './ong.ts';
 import { DemoStore, isCommandType } from './store.ts';
 
 const DEMO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -201,6 +202,26 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       'Access-Control-Allow-Headers': 'Content-Type',
     });
     return void res.end();
+  }
+
+  // Dashboard de la ONG del equipo + su estado.json en vivo (ver server/ong.ts).
+  const ong = /^\/ong(?:\/([A-Za-z0-9-]+))?(\/.*)?$/.exec(path);
+  if (ong && method === 'GET') {
+    const roomParam = (ong[1] ?? 'latest').toUpperCase();
+    const rest = ong[2] ?? '';
+    if (!ong[1] || rest === '') {
+      res.writeHead(302, { Location: `/ong/${ong[1] ?? 'latest'}/` });
+      return void res.end();
+    }
+    const room = roomParam === 'LATEST' ? store.latestRoom() : roomParam;
+    if (rest === '/estado.json') return sendJson(res, 200, buildEstado(room ? store.getSnapshot(room) : null));
+    if (rest === '/' || rest === '/index.html') {
+      const html = readOngHtml(DEMO_ROOT);
+      if (!html) return sendJson(res, 404, { error: 'ONG_DASHBOARD_MISSING', hint: 'python src/correr_todo.py' });
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+      return void res.end(html);
+    }
+    return sendJson(res, 404, { error: 'NOT_FOUND' });
   }
 
   if (path !== '/api' && !path.startsWith('/api/')) return serveStatic(req, res, path);
