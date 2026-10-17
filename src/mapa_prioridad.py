@@ -77,8 +77,8 @@ PLANTILLA = """<!doctype html>
  .kpis b{display:block;font-size:19px}
  .kpis span{font-size:11px;color:#555}
  .kpis div.alerta{background:#fde8e8}.kpis div.alerta b{color:#c92a2a}
- .aldea{width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid #1f4e9e;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 6px #0005}
- .aldea.alerta{border-color:#c92a2a;background:#fde3e0;animation:pulso 1s ease-in-out infinite}
+ .aldea{width:26px;height:26px;border-radius:50%;background:#2b8a3e;border:3px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font:800 14px system-ui;box-shadow:0 0 0 1px #0006,0 2px 6px #0005}
+ .aldea.alerta{background:#c92a2a;animation:pulso 1s ease-in-out infinite}
  @keyframes pulso{50%{box-shadow:0 0 0 10px #c92a2a33}}
  .aldea-tip{font-weight:700}
  @media (max-width:800px){body{flex-direction:column}#map{height:55%;flex:none}#lado{width:100%;height:45%;border-left:none;border-top:1px solid #ddd}}
@@ -138,15 +138,19 @@ for(const p of [...P].reverse()){
 }
 map.fitBounds(caja,{padding:[10,10]});
 
-// Pueblo piloto de la demo WaterLight: lo representa la bomba KIR-0005 de Bweyale
-// (mismo id que PILOT_PUMP en demo/src/features/guided-demo/demoMachine.ts).
-const PILOTO_ID='6GHJW47Q+VXW', piloto=P.find(p=>p.wpdx_id===PILOTO_ID);
-const aldea=piloto&&L.marker([+piloto.lat,+piloto.lon],{zIndexOffset:2000,
-  icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:'<div class="aldea">🏘️</div>'})})
-  .bindTooltip('Pueblo piloto (demo)',{permanent:true,direction:'right',offset:[16,0],className:'aldea-tip'})
-  .bindPopup(`<b>Pueblo piloto (demo WaterLight)</b><br>Pozos A, B y C de la simulación, representados por la bomba
-    #${piloto.ranking} (${piloto.subcondado}, ${piloto.motivo}).<br><small>La alerta de la demo es simulada.</small>`)
-  .addTo(map);
+// Aldea imaginaria de la demo WaterLight con sus pozos A, B y C (junto a Bweyale, como
+// PUEBLO_DEMO en demo/src/domain/kiryandongo.ts). La alerta del Pozo B llega en estado.json
+// con el id PILOT_PUMP de demo/src/features/guided-demo/demoMachine.ts.
+const PILOTO_ID='6GHJW47Q+VXW', ALDEA=[1.94,32.11];
+const aldea=L.layerGroup().addTo(map), pozos={};
+L.circle(ALDEA,{radius:450,color:'#1f4e9e',weight:2,dashArray:'5 5',fillColor:'#4dabf7',fillOpacity:.08,interactive:false})
+  .bindTooltip('Aldea piloto (imaginaria)',{permanent:true,direction:'top',offset:[0,-28],className:'aldea-tip'}).addTo(aldea);
+[['A',1.9418,32.1078],['B',1.9385,32.1115],['C',1.9412,32.1126]].forEach(([id,lat,lon])=>{
+  pozos[id]=L.marker([lat,lon],{zIndexOffset:2000,
+    icon:L.divIcon({className:'',iconSize:[26,26],iconAnchor:[13,13],html:`<div class="aldea">${id}</div>`})})
+    .bindPopup(`<b>Pozo ${id}</b> · aldea piloto (imaginaria)<br><small>Pozo de la demo WaterLight; su estado es simulado.</small>`)
+    .addTo(aldea);
+});
 
 // Panel lateral
 const res={};for(const k in NIV)res[k]={n:0,p:0};
@@ -202,15 +206,14 @@ const ZONAS=[
   ['Cinturón',['Bweyale Town Council','Kiryandongo']],
   ['Bweyale',['Bweyale Town Council']],
 ];
-if(aldea) ZONAS.push(['Aldea','piloto']);
+ZONAS.push(['Aldea','piloto']);
 function verZona(i){
   const [nom,scs]=ZONAS[i];
   if(scs==='piloto'){
-    map.setView(aldea.getLatLng(),15); aldea.openPopup();
-    document.getElementById('zstat').innerHTML=`<b>Pueblo piloto (demo WaterLight)</b><br>
-      Pozos A, B y C simulados · representados por la bomba <b>#${piloto.ranking}</b> (${piloto.subcondado.replace(' Town Council','')})<br>
-      ${piloto.motivo} · ${(+piloto.personas_servidas).toLocaleString('es')} usuarios<br>
-      <small>El círculo se pone rojo cuando llega la alerta de la demo.</small>`;
+    map.setView(ALDEA,15);
+    document.getElementById('zstat').innerHTML=`<b>Aldea piloto (imaginaria)</b><br>
+      3 pozos: A, B y C · demo WaterLight<br>
+      <small>Verde = habilitado · rojo = alerta recibida (se actualiza solo).</small>`;
     document.querySelectorAll('.zonas button').forEach((b,j)=>b.classList.toggle('on',i===j));
     return;
   }
@@ -245,7 +248,7 @@ function actualizarVivo(){
       m.getPopup().setContent(popupBase[id]+`<hr style="margin:4px 0"><b>Sensor (${s.codigo})</b>: ${v?v[1]:'normal'} · ${s.ultimo.slice(11,16)}<br>
         Hoy ${Math.round(s.litros_dia).toLocaleString('es')} L · turbidez ${s.turbidez} NTU · batería ${Math.round(s.bateria*100)}%`);
     }
-    const sp=e.bombas[PILOTO_ID], icono=aldea&&aldea.getElement()&&aldea.getElement().querySelector('.aldea');
+    const sp=e.bombas[PILOTO_ID], icono=pozos.B.getElement()&&pozos.B.getElement().querySelector('.aldea');
     if(icono) icono.classList.toggle('alerta',!!sp&&sp.estado!=='normal');
     const activas=cuenta.posible_falla+cuenta.riesgo_contaminacion, kpi=document.getElementById('kpiAlertas');
     kpi.classList.toggle('alerta',activas>0);
