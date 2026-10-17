@@ -11,10 +11,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-AZ="${AZ:-az}"
-command -v "$AZ" >/dev/null 2>&1 || AZ=".venv/Scripts/az"
+# Usa "az" si está instalado (Cloud Shell, Linux, Mac). Si no, la CLI del .venv del
+# proyecto vía "python -m azure.cli": el lanzador .venv/Scripts/az de Windows siempre
+# devuelve código 0, aunque falle, y el script no detectaría los errores.
+if command -v az >/dev/null 2>&1; then
+  AZ=az
+else
+  AZ="$(mktemp)"
+  printf '#!/usr/bin/env bash
+exec "%s" -m azure.cli "$@"
+' "$PWD/.venv/Scripts/python" > "$AZ"
+  chmod +x "$AZ"
+fi
 PY="${PY:-$(command -v python3 || command -v python)}"
 [ -f .env ] && set -a && . ./.env && set +a
+# Sin esto, la CLI se queda esperando un "y/n" al instalar extensiones
+"$AZ" config set extension.use_dynamic_install=yes_without_prompt -o none 2>/dev/null || true
 
 RG="${RG:-rg-agua-kiryandongo}"
 LOC="${LOC:-eastus}"
@@ -99,4 +111,4 @@ echo
 echo "Listo."
 echo "  Mapa en vivo:  $URL"
 echo "  Simular:       python src/iot/simulador.py --azure"
-echo "  Borrar todo:   $AZ group delete -n $RG --yes"
+echo "  Borrar todo:   az group delete -n $RG --yes   (si el grupo lo creó este script)"

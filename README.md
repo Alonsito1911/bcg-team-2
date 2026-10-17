@@ -94,6 +94,8 @@ python -m http.server -d output/iot_web 8000     # abrir http://localhost:8000
    python3 src/iot/simulador.py --azure --pausa 3   # envía la telemetría simulada
    ```
 3. Abre la URL del mapa que imprimió el script.
+
+> **En la suscripción de la hackathon** no se pueden crear grupos de recursos, el IoT Hub gratis (F1) ya está ocupado y la política "Hackathon Cost Limits" solo permite F1 o S1. Usa: `RG=SANTIAGO-team-2 HUB_SKU=S1 bash azure/desplegar.sh`. Despliegue actual: mapa en https://staguakiry27763.z1.web.core.windows.net/. **No borres el grupo `SANTIAGO-team-2`**: lo asignó la organización. Para limpiar, borra solo los recursos creados (`iot-agua-kiry-*`, `staguakiry*`, `fn-agua-kiry-*`).
 4. Al terminar, borra todo con `az group delete -n rg-agua-kiryandongo --yes`.
 
 Qué se ve: a las 12:00 simuladas, **KIR-0002 deja de bombear** (posible falla → SMS al mecánico); a las 13:00, **una lluvia enturbia 14 pozos poco profundos de Bweyale** (riesgo de contaminación → SMS al promotor de salud). El sobreuso queda como estado en el mapa, sin SMS. Los SMS se registran en los logs de la Function; el envío real (Africa's Talking o Twilio) queda por conectar.
