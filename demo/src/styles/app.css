@@ -186,6 +186,19 @@ h1, h2, h3, h4 { margin: 0; }
 .ong-sign { position: absolute; top: 37%; left: 50%; transform: translateX(-50%); font-weight: 900; font-size: 1.1vw; color: #1c5cab; letter-spacing: .08em; }
 .region-tag { margin-top: 2px; background: rgba(255,249,237,.95); border: 1.5px solid var(--ink); border-radius: 8px; padding: 1px 6px; font-size: 11px; white-space: nowrap; }
 .region-tag.strong { font-weight: 800; background: #dbeaf7; }
+/* KPIs sobre la región (KpiBoard) */
+.kpi-board { position: absolute; z-index: 2; background: rgba(255,249,237,.95); border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 12px rgba(0,0,0,.15); pointer-events: none; box-sizing: border-box; }
+.kpi-board small { display: block; margin-top: 6px; font-size: 11px; opacity: .7; }
+.kpi-title { font-weight: 800; font-size: 14px; margin-bottom: 8px; }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.kpi { background: #fff; border: 1.5px solid rgba(58,44,38,.25); border-radius: 8px; padding: 6px 8px; line-height: 1.2; transition: background .3s; }
+.kpi b { display: block; font-size: 22px; }
+.kpi span { font-size: 11px; opacity: .8; }
+.kpi.crit { background: #fde3e0; border-color: #d8483e; }
+.kpi.crit b { color: #b3261e; }
+.kpi.warn { background: #fff1d6; border-color: #e0a030; }
+.kpi.ok b { color: #2b8a3e; }
 .courier { position: absolute; transform: translate(-50%, -100%); width: 2.4%; z-index: 4; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
 .courier-art { width: 100%; }
 .map-controls { position: absolute; right: 10px; top: 10px; display: flex; gap: 4px; z-index: 20; }

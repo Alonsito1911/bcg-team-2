@@ -3,6 +3,7 @@ import { formatClock } from '../domain/state';
 import type { SimulationState, WellId } from '../domain/types';
 import { Sprite } from '../assets/Sprite';
 import { VillageScene } from './VillageScene';
+import { KpiBoard } from './KpiBoard';
 
 // El mundo es una caja 16:9; el pueblo ocupa este rectángulo (en % del mundo).
 const VILLAGE = { x: 31, y: 27, w: 38 };
@@ -194,6 +195,8 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
         <div className="village-frame" style={{ left: `${VILLAGE.x}%`, top: `${VILLAGE.y}%`, width: `${VILLAGE.w}%` }}>
           <VillageScene state={state} selected={selected} onSelect={onSelect} showArchitecture={showArchitecture} hideCloud={!!presentation} />
         </div>
+
+        <KpiBoard state={state} />
 
         <div className="region-item relay" style={{ left: `${RELAY.x}%`, top: `${RELAY.y}%` }}>
           <Sprite name="relay-tower" alt="Torre repetidora" className="region-art" />

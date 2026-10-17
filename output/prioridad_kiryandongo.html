@@ -27,6 +27,11 @@
  .zonas button{flex:1;padding:6px 4px;border:1px solid #ccc;background:#f4f4f4;border-radius:4px;cursor:pointer;font:inherit;font-size:12px}
  .zonas button.on{background:#222;color:#fff;border-color:#222}
  #zstat{margin-top:6px;padding:8px;background:#f7f7f7;border-radius:6px}
+ .kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+ .kpis div{background:#f5f5f5;border-radius:6px;padding:6px 8px;line-height:1.25}
+ .kpis b{display:block;font-size:19px}
+ .kpis span{font-size:11px;color:#555}
+ .kpis div.alerta{background:#fde8e8}.kpis div.alerta b{color:#c92a2a}
  @media (max-width:800px){body{flex-direction:column}#map{height:55%;flex:none}#lado{width:100%;height:45%;border-left:none;border-top:1px solid #ddd}}
 </style></head><body><div id="map"></div><div id="lado"></div>
 <script>
@@ -89,9 +94,22 @@ const res={};for(const k in NIV)res[k]={n:0,p:0};
 for(const p of P){res[p.nivel].n++;res[p.nivel].p+=+p.personas_afectadas;}
 const prom=Array.from({length:12},(_,i)=>LLUVIA.reduce((a,c)=>a+c.mensual[i],0)/LLUVIA.length);
 const mx=Math.max(...prom);
+// KPIs del distrito (mismo cálculo de uso vs capacidad que el panel de zona)
+const rotas=P.filter(p=>p.estado==='rota').length;
+const operativas=P.filter(p=>p.estado==='funciona'||p.estado==='necesita_rep').length;
+const usuariosDist=P.filter(p=>['funciona','necesita_rep','rota'].includes(p.estado)).reduce((a,p)=>a+(+p.personas_servidas||0),0);
+const fmt=n=>Math.round(n).toLocaleString('es');
 const lado=document.getElementById('lado');
 lado.innerHTML=`<h3>Prioridad de bombas · Kiryandongo</h3>
  <small>Modelo v1 por reglas · ${P.length} puntos (censo 2022)</small>
+ <div class="kpis">
+  <div><span>Bombas críticas</span><b>${res['Crítico'].n}</b><span>de ${P.length}</span></div>
+  <div><span>Personas afectadas</span><b>${fmt(res['Crítico'].p)}</b><span>en bombas críticas</span></div>
+  <div><span>Bombas rotas</span><b>${rotas}</b><span>${Math.round(rotas/P.length*100)}% del total</span></div>
+  <div><span>Uso vs capacidad</span><b>${Math.round(usuariosDist/(operativas*300)*100)}%</b><span>distrito</span></div>
+  <div><span>Críticas con cobertura LoRa</span><b>${LORA.criticas_con_todo}/${LORA.criticas_total}</b><span>${ANTENAS.length} torre + ${NUEVOS.length} gateways nuevos</span></div>
+  <div id="kpiAlertas"><span>Alertas activas</span><b>–</b><span>sensores en vivo</span></div>
+ </div>
  <h4>Sensores en vivo</h4><div id="vivo"><small>Conectando con Azure…</small></div><div id="alertasVivo"></div>
  <h4>Zona</h4><div class="zonas" id="zonas"></div><div id="zstat"></div>
  <h4>Semáforo</h4><div class="niv" id="niv"></div>
@@ -158,6 +176,10 @@ function actualizarVivo(){
       m.getPopup().setContent(popupBase[id]+`<hr style="margin:4px 0"><b>Sensor (${s.codigo})</b>: ${v?v[1]:'normal'} · ${s.ultimo.slice(11,16)}<br>
         Hoy ${Math.round(s.litros_dia).toLocaleString('es')} L · turbidez ${s.turbidez} NTU · batería ${Math.round(s.bateria*100)}%`);
     }
+    const activas=cuenta.posible_falla+cuenta.riesgo_contaminacion, kpi=document.getElementById('kpiAlertas');
+    kpi.classList.toggle('alerta',activas>0);
+    kpi.querySelector('b').textContent=activas;
+    kpi.querySelector('span:last-child').textContent=`${cuenta.posible_falla} falla · ${cuenta.riesgo_contaminacion} contaminación`;
     document.getElementById('vivo').innerHTML=`<small>Hora simulada ${e.actualizado?e.actualizado.slice(11,16):'-'} · ${e.eventos.toLocaleString('es')} mensajes · borde de color = alerta</small><br>`+
       Object.entries(VIVO).map(([k,v])=>`<span class="dot" style="background:#fff;border:3px solid ${v[0]};box-shadow:none"></span>${v[1]}: <b>${cuenta[k]}</b>`).join('<br>');
     document.getElementById('alertasVivo').innerHTML=e.alertas.filter(a=>a.sms).sort((a,b)=>(b.tipo==='posible_falla')-(a.tipo==='posible_falla')).slice(0,6).map(a=>
