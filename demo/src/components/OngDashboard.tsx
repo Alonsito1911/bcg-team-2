@@ -575,7 +575,63 @@ function DataFlow({ state }: { state: SimulationState }) {
 
 // ---------------------------------------------------------------- dashboard
 
-export function OngDashboard({ state, dispatch, onBack }: { state: SimulationState; dispatch: (a: UiAction) => void; onBack: () => void }) {
+export interface OngFocusAlert {
+  eventId: string | null;
+  reportedAt: string | null;
+}
+
+function AlertBanner({ alert, receivedAt }: { alert: OngFocusAlert; receivedAt: number }) {
+  const hora = alert.reportedAt ? new Date(alert.reportedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+  return (
+    <section className="ong-alert" role="alert">
+      <div className="ong-alert-head">
+        <span className="ong-alert-dot" aria-hidden="true" />
+        <div>
+          <h3>Alerta recibida · Pozo B contaminado</h3>
+          <p>
+            Pueblo piloto (Kiryandongo, ubicación ilustrativa) · fuente: prueba de campo <b>simulada</b> validada por la guardiana · recibida en la
+            simulación a las {formatClock(Math.max(0, receivedAt))}
+          </p>
+        </div>
+      </div>
+      <div className="ong-alert-grid">
+        <div>
+          <span className="k">Evento real guardado en el servidor</span>
+          <b>{alert.eventId ? `#${alert.eventId.slice(0, 8)}` : 'modo ensayo (sin servidor)'}</b>
+          <small>reportado desde el teléfono a las {hora}</small>
+        </div>
+        <div>
+          <span className="k">Pozos disponibles en el pueblo</span>
+          <b>2 de 3</b>
+          <small>A y C habilitados · B bloqueado</small>
+        </div>
+        <div className="actions">
+          <span className="k">Acciones sugeridas (las decide una persona)</span>
+          <ol>
+            <li>Confirmar que el Pozo B quedó bloqueado y avisar al comité de agua</li>
+            <li>Verificar disponibilidad en los Pozos A y C</li>
+            <li>Cloración de choque y nueva prueba en el Pozo B</li>
+            <li>Revisar pozos cercanos de alto riesgo en el mapa</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function OngDashboard({
+  state,
+  dispatch,
+  onBack,
+  focusAlert,
+  presentation,
+}: {
+  state: SimulationState;
+  dispatch: (a: UiAction) => void;
+  onBack: () => void;
+  focusAlert?: OngFocusAlert;
+  presentation?: boolean;
+}) {
   const [niveles, setNiveles] = useState<Nivel[]>(['Crítico', 'Alto', 'Revisar', 'Bien']);
   const [sub, setSub] = useState('Todos');
   const [showRain, setShowRain] = useState(true);
@@ -594,7 +650,7 @@ export function OngDashboard({ state, dispatch, onBack }: { state: SimulationSta
     <div className="ong">
       <header className="ong-head">
         <button type="button" className="ghost" onClick={onBack}>
-          ◂ Volver al mapa
+          {presentation ? '◂ Volver a la escena' : '◂ Volver al mapa'}
         </button>
         <div>
           <h2>Centro regional ONG · Kiryandongo (Uganda)</h2>
@@ -609,13 +665,15 @@ export function OngDashboard({ state, dispatch, onBack }: { state: SimulationSta
                 : 'Aún no hay retiro manual: la ONG no ve los eventos del pueblo piloto'}
           </p>
         </div>
-        {!live && (
+        {!live && !presentation && (
           <button type="button" className="primary" onClick={() => dispatch({ type: 'MANUAL_EXTRACT' })}>
             💾 Simular retiro manual
           </button>
         )}
         <span className="disclaimer">⚠ Pueblo piloto y modelo de riesgo: {DISCLAIMER.toLowerCase()}</span>
       </header>
+
+      {focusAlert && <AlertBanner alert={focusAlert} receivedAt={state.cloud['well-2'].receivedAt} />}
 
       <div className="stat-row big">
         <div className="stat">

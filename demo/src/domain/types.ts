@@ -145,7 +145,7 @@ export type Activity =
   | 'WAITING'
   | 'SYNCING';
 
-export type Intent = 'COLLECT' | 'INSPECT' | 'REPAIR' | 'HOME' | 'ROUND';
+export type Intent = 'COLLECT' | 'INSPECT' | 'REPAIR' | 'HOME' | 'ROUND' | 'VISIT';
 
 export interface Point {
   x: number;

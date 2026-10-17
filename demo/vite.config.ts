@@ -9,6 +9,8 @@ export default defineConfig({
   base: './',
   plugins: single ? [react(), viteSingleFile()] : [react()],
   build: single ? { outDir: 'dist-single' } : undefined,
+  // En dev, la API real de la demo guiada corre en server/index.ts (npm run server).
+  server: { proxy: { '/api': 'http://localhost:8787' } },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',

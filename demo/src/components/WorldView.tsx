@@ -18,13 +18,16 @@ interface Props {
   showArchitecture: boolean;
   onOpenOng: () => void;
   zoomRequest: { target: 'village' | 'region'; n: number };
+  /** Modo presentación de la demo guiada: sin controles, cámara animada y alerta visible hacia la ONG. */
+  presentation?: { ongAlertLabel: string | null };
 }
 
-export function WorldView({ state, selected, onSelect, showArchitecture, onOpenOng, zoomRequest }: Props) {
+export function WorldView({ state, selected, onSelect, showArchitecture, onOpenOng, zoomRequest, presentation }: Props) {
   const vpRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 675 });
   const [view, setView] = useState({ z: MAX_ZOOM, x: 0, y: 0, init: false });
   const drag = useRef<{ px: number; py: number; x: number; y: number; moved: boolean } | null>(null);
+  const [camAnim, setCamAnim] = useState(false);
 
   useLayoutEffect(() => {
     const el = vpRef.current;
@@ -59,8 +62,11 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
 
   useEffect(() => {
     if (zoomRequest.n === 0) return;
+    setCamAnim(true);
+    const t = window.setTimeout(() => setCamAnim(false), 1300);
     if (zoomRequest.target === 'village') focusVillage();
     else focusRegion();
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomRequest.n]);
 
@@ -99,8 +105,16 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
   const zoomedOut = view.z < MAX_ZOOM * 0.8;
   const star = state.phase === 'STAR';
   const cloudLive = star && state.connectivity.cloud && state.connectivity.gatewayPowered;
-  const inFlight = state.deliveries.some((d) => d.to === 'cloud' && d.status === 'SENDING');
+  const lastCloudReceive = Math.max(...Object.values(state.cloud).map((k) => k.receivedAt));
+  const inFlight =
+    state.deliveries.some((d) => d.to === 'cloud' && d.status === 'SENDING') ||
+    (!!presentation && lastCloudReceive > 0 && state.clockMs - lastCloudReceive < 3600);
   const queued = state.deliveries.filter((d) => d.to === 'cloud' && d.status === 'QUEUED').length;
+  // Presentación: el paquete hacia la ONG se anima con el reloj de la simulación (determinista).
+  const VISUAL_MS = 2600;
+  const cloudSend = [...state.deliveries].reverse().find((d) => d.to === 'cloud' && d.startedAt !== undefined);
+  const sendProgress = presentation && cloudSend ? (state.clockMs - cloudSend.startedAt!) / VISUAL_MS : 2;
+  const showOngAlert = !!presentation?.ongAlertLabel && sendProgress >= 1;
   const extracting = state.lastManualExtractAt !== null && state.clockMs - state.lastManualExtractAt < 5000;
   const extractT = extracting ? (state.clockMs - state.lastManualExtractAt!) / 5000 : 0;
 
@@ -110,7 +124,7 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
 
   return (
     <div
-      className={`viewport ${zoomedOut ? 'zoomed-out' : ''}`}
+      className={`viewport ${zoomedOut ? 'zoomed-out' : ''} ${presentation ? 'presenting' : ''}`}
       ref={vpRef}
       onWheel={onWheel}
       onPointerDown={onPointerDown}
@@ -118,7 +132,7 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <div className="world" style={{ width: W, height: H, transform: `translate(${view.x}px, ${view.y}px)` }}>
+      <div className={`world ${camAnim ? 'cam-anim' : ''}`} style={{ width: W, height: H, transform: `translate(${view.x}px, ${view.y}px)` }}>
         <svg className="region" viewBox="0 0 160 90" preserveAspectRatio="none" aria-hidden="true">
           <rect width="160" height="90" fill="#e9cf98" />
           {/* curvas de nivel suaves del terreno */}
@@ -142,7 +156,24 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
             fill="none"
             className={`backhaul ${cloudLive ? 'live' : star ? 'down' : 'none'}`}
           />
-          {inFlight && cloudLive && <circle r="1.2" className="backhaul-packet"><animateMotion dur="1.2s" repeatCount="indefinite" path={`M${gw.x * 1.6} ${gw.y * 0.9} L${RELAY.x * 1.6} ${RELAY.y * 0.9 - 6} L${ONG.x * 1.6} ${ONG.y * 0.9 - 8}`} /></circle>}
+          {presentation && sendProgress > 0 && sendProgress < 1 && (() => {
+            const pts = [
+              { x: gw.x * 1.6, y: gw.y * 0.9 },
+              { x: RELAY.x * 1.6, y: RELAY.y * 0.9 - 6 },
+              { x: ONG.x * 1.6, y: ONG.y * 0.9 - 8 },
+            ];
+            const seg = sendProgress < 0.5 ? 0 : 1;
+            const t = (sendProgress - seg * 0.5) * 2;
+            const x = pts[seg].x + (pts[seg + 1].x - pts[seg].x) * t;
+            const y = pts[seg].y + (pts[seg + 1].y - pts[seg].y) * t;
+            return (
+              <g>
+                <circle cx={x} cy={y} r={3.2} className="backhaul-glow" />
+                <circle cx={x} cy={y} r={1.8} className="backhaul-packet alert" />
+              </g>
+            );
+          })()}
+          {!presentation && inFlight && cloudLive && <circle r={1.2} className="backhaul-packet"><animateMotion dur="1.2s" repeatCount="indefinite" path={`M${gw.x * 1.6} ${gw.y * 0.9} L${RELAY.x * 1.6} ${RELAY.y * 0.9 - 6} L${ONG.x * 1.6} ${ONG.y * 0.9 - 8}`} /></circle>}
           {/* pueblos vecinos (escalabilidad) */}
           {[
             { x: 12, y: 18, n: 'Mutunda' },
@@ -161,7 +192,7 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
         </svg>
 
         <div className="village-frame" style={{ left: `${VILLAGE.x}%`, top: `${VILLAGE.y}%`, width: `${VILLAGE.w}%` }}>
-          <VillageScene state={state} selected={selected} onSelect={onSelect} showArchitecture={showArchitecture} />
+          <VillageScene state={state} selected={selected} onSelect={onSelect} showArchitecture={showArchitecture} hideCloud={!!presentation} />
         </div>
 
         <div className="region-item relay" style={{ left: `${RELAY.x}%`, top: `${RELAY.y}%` }}>
@@ -172,6 +203,7 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
         <button type="button" className="region-item ong" style={{ left: `${ONG.x}%`, top: `${ONG.y}%` }} onClick={onOpenOng} aria-label="Centro regional de la ONG: abrir dashboard">
           <Sprite name="ong-building" alt="" className="region-art" />
           <span className="ong-sign">ONG</span>
+          {showOngAlert && <span className="region-tag alert">🔴 {presentation!.ongAlertLabel}</span>}
           <span className="region-tag strong">Centro regional ONG · abrir dashboard ▸</span>
           <span className="region-tag">
             {cloudLive
@@ -190,13 +222,15 @@ export function WorldView({ state, selected, onSelect, showArchitecture, onOpenO
         )}
       </div>
 
+      {!presentation && (
       <div className="map-controls" role="toolbar" aria-label="Controles del mapa">
         <button type="button" onClick={() => zoomAt(1.25)} aria-label="Acercar">＋</button>
         <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label="Alejar">－</button>
         <button type="button" onClick={focusVillage}>Pueblo</button>
         <button type="button" onClick={focusRegion}>Región + ONG</button>
       </div>
-      {!zoomedOut && <div className="map-hint">Rueda o “Región + ONG” para alejar · arrastra para moverte</div>}
+      )}
+      {!zoomedOut && !presentation && <div className="map-hint">Rueda o “Región + ONG” para alejar · arrastra para moverte</div>}
     </div>
   );
 }

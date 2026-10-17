@@ -9,13 +9,18 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build:single": "tsc --noEmit && SINGLE=1 vite build"
+    "build:single": "tsc --noEmit && SINGLE=1 vite build",
+    "server": "node --experimental-strip-types --no-warnings server/index.ts",
+    "demo:serve": "npm run build && npm run server"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

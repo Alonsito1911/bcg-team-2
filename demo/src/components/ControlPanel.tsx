@@ -15,6 +15,7 @@ interface Props {
   setShowArchitecture: (v: boolean) => void;
   onRegion: () => void;
   onOpenOng: () => void;
+  onStartDemo: () => void;
 }
 
 const PRESET_OPTIONS: { value: QuickPreset; label: string }[] = [
@@ -34,7 +35,7 @@ function physicalPreset(state: SimulationState, id: WellId): QuickPreset {
   return 'ENABLED';
 }
 
-export function ControlPanel({ state, dispatch, advanced, setAdvanced, showArchitecture, setShowArchitecture, onRegion, onOpenOng }: Props) {
+export function ControlPanel({ state, dispatch, advanced, setAdvanced, showArchitecture, setShowArchitecture, onRegion, onOpenOng, onStartDemo }: Props) {
   const [personId, setPersonId] = useState('amina');
   const [dest, setDest] = useState<WellId | 'AUTO'>('AUTO');
   const scenario = state.scenario ? findScenario(state.scenario.id) : undefined;
@@ -51,6 +52,10 @@ export function ControlPanel({ state, dispatch, advanced, setAdvanced, showArchi
         </h1>
         <p>Pozos A, B y C · pueblo piloto · Kiryandongo (Uganda)</p>
         <p className="disclaimer" role="note">⚠ {DISCLAIMER}</p>
+        <button type="button" className="btn demo-cta" onClick={onStartDemo}>
+          ▶ Demo
+          <small>pantalla completa · se controla desde el teléfono</small>
+        </button>
         <div className="phase-toggle" role="radiogroup" aria-label="Fase del producto">
           <button type="button" role="radio" aria-checked={state.phase === 'MVP'} className={state.phase === 'MVP' ? 'active' : ''} onClick={() => dispatch({ type: 'SET_PHASE', phase: 'MVP' })}>
             MVP

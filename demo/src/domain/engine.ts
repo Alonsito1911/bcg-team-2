@@ -1,7 +1,7 @@
 // Punto único de entrada al dominio: dispatch({type, payload}) + avance del reloj lógico.
 import { DEMO_CONFIG } from './config';
 import { deriveVillageState } from './deriveVillageState';
-import { communityReport, nextPeopleWake, sendPerson, sendRepair, startRound, tickPeople } from './people';
+import { communityReport, guardianReport, nextPeopleWake, personSay, sendPerson, sendRepair, sendVisit, startRound, tickPeople } from './people';
 import { addLog, createInitialState, enabledFactors, meshKey, WELL_NAMES } from './state';
 import { applyEventToKnowledge, canSend, emitWellEvent, refreshKnowledge, syncWell, tickHeartbeats, tickTransport } from './transport';
 import { WELL_IDS, type Phase, type ReportReason, type SimulationState, type ValveCondition, type WaterTest, type WellId } from './types';
@@ -59,7 +59,10 @@ export type Action =
   | { type: 'RETRY_NOW'; wellId: WellId }
   | { type: 'RESTORE_NETWORK' }
   | { type: 'INJECT_OUT_OF_ORDER'; wellId: WellId }
-  | { type: 'SET_SCENARIO'; scenario: SimulationState['scenario'] };
+  | { type: 'SET_SCENARIO'; scenario: SimulationState['scenario'] }
+  | { type: 'WORKER_VISIT'; wellId: WellId }
+  | { type: 'GUARDIAN_REPORT'; wellId: WellId }
+  | { type: 'PERSON_SAY'; personId: string; text: string; ms: number };
 
 const PRESET_LABEL: Record<QuickPreset, string> = {
   ENABLED: 'Habilitado',
@@ -350,6 +353,15 @@ export function applyAction(prev: SimulationState, action: Action): SimulationSt
       addLog(s, 'OPERADOR', `Operador: inyecta dos eventos de ${w.name} que llegarán en orden invertido`, id);
       break;
     }
+    case 'WORKER_VISIT':
+      sendVisit(s, action.wellId);
+      break;
+    case 'GUARDIAN_REPORT':
+      guardianReport(s, action.wellId);
+      break;
+    case 'PERSON_SAY':
+      personSay(s, action.personId, action.text, action.ms);
+      break;
     case 'SET_SCENARIO':
       s.scenario = action.scenario;
       break;

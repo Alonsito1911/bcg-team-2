@@ -10,4 +10,5 @@ output/iot_web/
 demo/node_modules/
 demo/dist/
 demo/dist-single/
+demo/server/data/
 .hermess/

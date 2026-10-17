@@ -41,10 +41,10 @@ const LINKS: [NodeId, NodeId][] = [
   ['well-1', 'well-2'],
 ];
 
-export function SignalLayer({ state: s, showArchitecture }: { state: SimulationState; showArchitecture: boolean }) {
+export function SignalLayer({ state: s, showArchitecture, hideCloud }: { state: SimulationState; showArchitecture: boolean; hideCloud?: boolean }) {
   const now = s.clockMs;
-  const sending = s.deliveries.filter((d) => d.status === 'SENDING' && d.startedAt !== undefined && d.arriveAt !== undefined);
-  const acks = s.deliveries.filter((d) => d.status === 'DELIVERED' && d.arriveAt !== undefined && d.ackAt !== undefined);
+  const sending = s.deliveries.filter((d) => d.status === 'SENDING' && d.startedAt !== undefined && d.arriveAt !== undefined && !(hideCloud && d.to === 'cloud'));
+  const acks = s.deliveries.filter((d) => d.status === 'DELIVERED' && d.arriveAt !== undefined && d.ackAt !== undefined && !(hideCloud && d.to === 'cloud'));
   const queuedCloud = s.deliveries.filter((d) => d.status === 'QUEUED' && d.to === 'cloud').length;
   const cloudDown = !s.connectivity.cloud || !s.connectivity.gatewayPowered;
 
@@ -72,7 +72,7 @@ export function SignalLayer({ state: s, showArchitecture }: { state: SimulationS
 
       {/* Arquitectura visible solo si el usuario la pide */}
       {showArchitecture &&
-        LINKS.map(([f, t]) => {
+        LINKS.filter(([, t]) => !(hideCloud && t === 'cloud')).map(([f, t]) => {
           const on = canSend(s, f, t);
           return <path key={`${f}-${t}`} d={arc(f, t).d} className={`link-arc ${on ? '' : 'down'}`} />;
         })}
@@ -120,7 +120,7 @@ export function SignalLayer({ state: s, showArchitecture }: { state: SimulationS
       })}
 
       {/* Efectos: paquete perdido, ACK recibido, salida bloqueada */}
-      {s.fx.map((f) => {
+      {s.fx.filter((f) => !(hideCloud && (f.to === 'cloud' || f.from === 'cloud'))).map((f) => {
         if (f.kind === 'DROP' && f.from && f.to) {
           const { a, b, c } = arc(f.from, f.to);
           const p = quad(a, c, b, 0.62);

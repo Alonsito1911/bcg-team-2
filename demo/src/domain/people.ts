@@ -152,6 +152,28 @@ export function startRound(s: SimulationState): void {
   addLog(s, 'COMUNIDAD', `Visita semanal: ${p.name} recorre los 3 pozos para verificar`);
 }
 
+/** Demo guiada: la guardiana camina a un pozo y se queda ahí (no toma la muestra sola). */
+export function sendVisit(s: SimulationState, wellId: WellId): void {
+  const p = s.people.find((x) => x.role === 'WORKER')!;
+  p.intent = 'VISIT';
+  p.round = [wellId];
+  p.target = wellId;
+  p.bubble = undefined;
+  walkTo(p, routeToWell(p.pos, wellId));
+  addLog(s, 'COMUNIDAD', `${p.name} va al ${WELL_NAMES[wellId]} para revisarlo`, wellId);
+}
+
+/** Demo guiada: el reporte de la guardiana (confirmado desde el teléfono) entra a la red simulada. */
+export function guardianReport(s: SimulationState, wellId: WellId): void {
+  const p = s.people.find((x) => x.role === 'WORKER')!;
+  inspect(s, p, wellId);
+  say(s, p, 'Reportado ✓ · aviso enviado', 4000);
+}
+
+export function personSay(s: SimulationState, personId: string, text: string, ms: number): void {
+  say(s, person(s, personId), text, ms);
+}
+
 export function sendRepair(s: SimulationState, wellId: WellId): void {
   const p = s.people.find((x) => x.role === 'WORKER')!;
   p.intent = 'REPAIR';
@@ -410,6 +432,12 @@ function finishActivity(s: SimulationState, p: Person): void {
 function arrive(s: SimulationState, p: Person): void {
   if (p.intent === 'COLLECT' && p.target) {
     arriveCollect(s, p, p.target);
+    return;
+  }
+  if (p.intent === 'VISIT' && p.target) {
+    p.activity = 'INSPECTING';
+    p.activityUntil = 0;
+    say(s, p, 'Revisando el pozo…', 2500);
     return;
   }
   if ((p.intent === 'INSPECT' || p.intent === 'ROUND') && p.target) {
