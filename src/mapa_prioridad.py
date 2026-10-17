@@ -115,7 +115,7 @@ NUEVOS.forEach((g,i)=>{
     Necesita un mástil, energía (solar) y conexión (celular o satélite).<br>Alcance supuesto: ~${LORA.radio_km} km`).addTo(antenas);
 });
 
-const capas={}, marcas={};
+const capas={}, marcas={}, porId={};
 for(const k in NIV){capas[k]=L.layerGroup();if(k!=='Bien')capas[k].addTo(map);}
 for(const p of [...P].reverse()){
   const r=4+Math.min(10,Math.sqrt(+p.personas_afectadas)/3);
@@ -125,7 +125,7 @@ for(const p of [...P].reverse()){
      ${p.subcondado} · instalada ${p.anio_instalacion||'s/i'} · reporte ${p.fecha_reporte}<br>
      Lluvia zona: ${p.lluvia_anual_mm} mm/año, ${p.lluvia_dic_feb_mm} mm en dic–feb (factor ${p.factor_seco})<br>
      <small>Puntaje ${p.puntaje} · ${p.wpdx_id}</small>`).addTo(capas[p.nivel]);
-  marcas[p.ranking]=m;
+  marcas[p.ranking]=m; porId[p.wpdx_id]=m;
 }
 map.fitBounds(caja,{padding:[10,10]});
 
@@ -137,6 +137,7 @@ const mx=Math.max(...prom);
 const lado=document.getElementById('lado');
 lado.innerHTML=`<h3>Prioridad de bombas · Kiryandongo</h3>
  <small>Modelo v1 por reglas · ${P.length} puntos (censo 2022)</small>
+ <h4>Sensores en vivo</h4><div id="vivo"><small>Conectando con Azure…</small></div><div id="alertasVivo"></div>
  <h4>Zona</h4><div class="zonas" id="zonas"></div><div id="zstat"></div>
  <h4>Semáforo</h4><div class="niv" id="niv"></div>
  <h4>Lluvia promedio 2015–2024</h4>
@@ -187,6 +188,31 @@ ZONAS.forEach(([nom],i)=>{const b=document.createElement('button');b.textContent
 verZona(0);
 
 document.getElementById('chkLluvia').onchange=e=>e.target.checked?lluvia.addTo(map).bringToBack():map.removeLayer(lluvia);
+// Sensores en vivo: estado.json lo escribe la Azure Function en el mismo sitio web.
+// Abierto como archivo local no hay conexión y la sección lo indica.
+const VIVO={posible_falla:['#c92a2a','Posible falla'],riesgo_contaminacion:['#1c7ed6','Riesgo contaminación'],sobreuso:['#f08c00','Sobreuso']};
+const popupBase={};
+function actualizarVivo(){
+  fetch('estado.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(e=>{
+    const cuenta={posible_falla:0,riesgo_contaminacion:0,sobreuso:0};
+    for(const [id,s] of Object.entries(e.bombas)){
+      const m=porId[id]; if(!m) continue;
+      if(!(id in popupBase)) popupBase[id]=m.getPopup().getContent();
+      const v=VIVO[s.estado];
+      if(v){cuenta[s.estado]++; m.setStyle({color:v[0],weight:4});} else m.setStyle({color:'#fff',weight:1});
+      m.getPopup().setContent(popupBase[id]+`<hr style="margin:4px 0"><b>Sensor (${s.codigo})</b>: ${v?v[1]:'normal'} · ${s.ultimo.slice(11,16)}<br>
+        Hoy ${Math.round(s.litros_dia).toLocaleString('es')} L · turbidez ${s.turbidez} NTU · batería ${Math.round(s.bateria*100)}%`);
+    }
+    document.getElementById('vivo').innerHTML=`<small>Hora simulada ${e.actualizado?e.actualizado.slice(11,16):'-'} · ${e.eventos.toLocaleString('es')} mensajes · borde de color = alerta</small><br>`+
+      Object.entries(VIVO).map(([k,v])=>`<span class="dot" style="background:#fff;border:3px solid ${v[0]};box-shadow:none"></span>${v[1]}: <b>${cuenta[k]}</b>`).join('<br>');
+    document.getElementById('alertasVivo').innerHTML=e.alertas.filter(a=>a.sms).sort((a,b)=>(b.tipo==='posible_falla')-(a.tipo==='posible_falla')).slice(0,6).map(a=>
+      `<div style="border-left:4px solid ${VIVO[a.tipo][0]};padding:4px 6px;margin-top:4px;background:#fafafa;cursor:pointer" data-id="${a.pozo_id}">
+       <b>SMS ${a.codigo}</b> · ${a.ts.slice(11,16)}<br><small>${a.mensaje}</small></div>`).join('');
+    document.querySelectorAll('#alertasVivo [data-id]').forEach(d=>d.onclick=()=>{const m=porId[d.dataset.id];if(m){map.setView(m.getLatLng(),15);m.openPopup();}});
+  }).catch(()=>{document.getElementById('vivo').innerHTML='<small>Sin conexión a los sensores (se ve en la versión publicada en Azure).</small>';});
+}
+actualizarVivo(); setInterval(actualizarVivo,3000);
+
 document.getElementById('chkAntenas').onchange=e=>e.target.checked?antenas.addTo(map):map.removeLayer(antenas);
 document.getElementById('chkAsent').onchange=e=>e.target.checked?asent.addTo(map):map.removeLayer(asent);
 const tablaTop=document.getElementById('top');
