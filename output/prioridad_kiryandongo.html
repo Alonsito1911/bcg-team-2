@@ -157,8 +157,18 @@ const ZONAS=[
   ['Cinturón',['Bweyale Town Council','Kiryandongo']],
   ['Bweyale',['Bweyale Town Council']],
 ];
+if(aldea) ZONAS.push(['Aldea','piloto']);
 function verZona(i){
   const [nom,scs]=ZONAS[i];
+  if(scs==='piloto'){
+    map.setView(aldea.getLatLng(),15); aldea.openPopup();
+    document.getElementById('zstat').innerHTML=`<b>Pueblo piloto (demo WaterLight)</b><br>
+      Pozos A, B y C simulados · representados por la bomba <b>#${piloto.ranking}</b> (${piloto.subcondado.replace(' Town Council','')})<br>
+      ${piloto.motivo} · ${(+piloto.personas_servidas).toLocaleString('es')} usuarios<br>
+      <small>El círculo se pone rojo cuando llega la alerta de la demo.</small>`;
+    document.querySelectorAll('.zonas button').forEach((b,j)=>b.classList.toggle('on',i===j));
+    return;
+  }
   const g=scs?P.filter(p=>scs.includes(p.subcondado)):P;
   if(scs) map.fitBounds(L.latLngBounds(g.map(p=>[+p.lat,+p.lon])),{padding:[30,30]});
   else map.fitBounds(caja,{padding:[10,10]});
