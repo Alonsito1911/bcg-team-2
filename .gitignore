@@ -5,3 +5,9 @@ __pycache__/
 node_modules/
 .venv/
 output/iot_web/
+
+# WaterLight demo (React/Vite)
+demo/node_modules/
+demo/dist/
+demo/dist-single/
+.hermess/

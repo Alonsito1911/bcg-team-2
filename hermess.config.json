@@ -1,0 +1,13 @@
+{
+  "allowedCommands": [
+    "npm --prefix demo test",
+    "npm --prefix demo run build",
+    "npm --prefix demo run build:single",
+    "python src/correr_todo.py",
+    "python3 demo/scripts/export_bcg_team2.py",
+    "ls",
+    "pwd",
+    "git status"
+  ],
+  "ignored": ["node_modules/**", ".git/**", "dist/**", "demo/dist/**", "demo/dist-single/**", ".hermess/**", "build/**"]
+}

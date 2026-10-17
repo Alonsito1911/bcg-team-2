@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "hermess": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "arufheim-hermess",
+        "--repo-path",
+        "${workspaceFolder}"
+      ]
+    }
+  }
+}

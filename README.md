@@ -129,3 +129,7 @@ Cifras de contexto citadas en el análisis:
 1. Recomendador de presupuesto: reparaciones + sensores celulares vs. red LoRaWAN, en personas atendidas por dólar.
 2. Modelo de probabilidad de falla y de riesgo de contaminación (WPDx Uganda tiene 1.506 puntos con resultado de E. coli).
 3. Antenas reales con OpenCelliD.
+
+## WaterLight: demo interactiva y diseño de la solución
+
+Simulación del pueblo piloto (pozos A/B/C, semáforo por pozo, guardiana, red LoRa con cola/ACK/réplica) y dashboard ONG que reutiliza el pipeline de este repo. Código en [`demo/`](demo/) y documentación en [`docs/waterlight/`](docs/waterlight/). Para continuar el trabajo, empieza por [`docs/waterlight/HANDOFF.md`](docs/waterlight/HANDOFF.md).
